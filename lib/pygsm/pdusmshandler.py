@@ -72,7 +72,7 @@ class PduSmsHandler(SmsHandler):
                             self.modem.command(pdu_string, write_term=chr(26))
                             return True
                         except:                           
-                            if getattr(err, "code", None) == 500 and self.modem.modem_type = 'TC35i':
+                            if getattr(err, "code", None) == 500 and self.modem.modem_type == 'TC35i':
                                 time.sleep(self.retry_delay)
                                 retries += 1
                                 continue

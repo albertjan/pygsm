@@ -72,7 +72,7 @@ class GsmModem(object):
     retry_delay = 2
     max_retries = 10
     modem_lock = threading.RLock()
-    
+    modem_type = ""
     
     def __init__(self, *args, **kwargs):
         """Creates, connects to, and boots a GSM Modem. All of the arguments
