@@ -221,7 +221,7 @@ class GsmModem(object):
 
         # enable new message notification
         self.command(
-            "AT+CNMI=2,2,0,0,0",
+            "AT+CNMI=2,2,0,0,1",
             raise_errors=False)
 
 
@@ -372,6 +372,7 @@ class GsmModem(object):
                 # otherwise, allow errors to propagate upwards,
                 # and hope someone is waiting to catch them
                 else: 
+                    print "Aaaarg error";
                     raise(err)
 
         # if the first line of the response echoes the cmd

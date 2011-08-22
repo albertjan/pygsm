@@ -11,6 +11,10 @@ class PduSmsHandler(SmsHandler):
     CMGL_MATCHER =re.compile(r'^\+CMGL:.*?$')
     CMGL_STATUS="0"
     
+    max_retries = 10
+    retry_delay = 2
+    
+    
     def __init__(self, modem):
         SmsHandler.__init__(self, modem)
     
@@ -44,34 +48,42 @@ class PduSmsHandler(SmsHandler):
             # accesing the property causes the pdu_string
             # to be generated, so do once and cache
             pdu_string = pdu.pdu_string
-
-            # try to catch write timeouts
-            try:
-                # content length is in bytes, so half PDU minus
-                # the first blank '00' byte
-                self.modem.command( 
-                'AT+CMGS=%d' % (len(pdu_string)/2 - 1), 
-                read_timeout=1
-                )
-
-                # if no error is raised within the timeout period,
-                # and the text-mode prompt WAS received, send the
-                # sms text, wait until it is accepted or rejected
-                # (text-mode messages are terminated with ascii char 26
-                # "SUBSTITUTE" (ctrl+z)), and return True (message sent)
-            except errors.GsmReadTimeoutError, err:
-                if err.pending_data[0] == ">":
-                    self.modem.command(pdu_string, write_term=chr(26))
-                    return True
-
-                    # a timeout was raised, but no prompt nor
-                    # error was received. i have no idea what
-                    # is going on, so allow the error to propagate
-                else:
-                    raise
-
-            finally:
-                pass
+            retries = 0
+            while retries < self.max_retries:
+                # try to catch write timeouts
+                try:
+                    # content length is in bytes, so half PDU minus
+                    # the first blank '00' byte
+                    self.modem.command( 
+                    'AT+CMGS=%d' % (len(pdu_string)/2 - 1), 
+                    read_timeout=2
+                    )
+                
+                    #self.modem.command(pdu_string, write_term=chr(26))
+                
+                    # if no error is raised within the timeout period,
+                    # and the text-mode prompt WAS received, send the
+                    # sms text, wait until it is accepted or rejected
+                    # (text-mode messages are terminated with ascii char 26
+                    # "SUBSTITUTE" (ctrl+z)), and return True (message sent)
+                except errors.GsmReadTimeoutError, err:
+                    if err.pending_data[0] == ">":
+                        try:
+                            self.modem.command(pdu_string, write_term=chr(26))
+                            return True
+                        except:                           
+                            if getattr(err, "code", None) == 500:
+                                time.sleep(self.retry_delay)
+                                retries += 1
+                                continue
+                        # a timeout was raised, but no prompt nor
+                        # error was received. i have no idea what
+                        # is going on, so allow the error to propagate
+                    else:
+                        raise
+                
+                finally:
+                    pass
 
         # for all other errors...
         # (likely CMS or CME from device)
