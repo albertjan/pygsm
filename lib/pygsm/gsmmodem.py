@@ -214,16 +214,23 @@ class GsmModem(object):
         # set some sensible defaults, to make
         # the various modems more consistant
         self.command("ATE0",      raise_errors=False) # echo off
+        #sniff the modem type
+        modem_type = self.query("AT+CGMM")
+        self._log("Modem type: " + modem_type)
         self.command("AT+CMEE=1", raise_errors=False) # useful error messages
-        self.command("AT+WIND=0", raise_errors=False) # disable notifications
         self.command("AT+CSMS=1", raise_errors=False) # set SMS mode to phase 2+
-        self.command(self.smshandler.get_mode_cmd()      ) # make sure in PDU mode
+        
+        if (modem_type == "TC35i"):
+            cnmi_command = "AT+CNMI=2,2,0,0,1"  # according to the TC35i documentation the last parameter of
+                                                # AT+CNMI can only be one. It will error on it and you will
+                                                # not receive sms messages if it's not set like this.
+        else:
+            self.command("AT+WIND=0", raise_errors=False) # disable notifications, on the TC35i this command
+                                                          # does not exsist
+            cnmi_command = "AT+CNMI=2,2,0,0,0"
 
-        # enable new message notification
-        self.command(
-            "AT+CNMI=2,2,0,0,1",
-            raise_errors=False)
-
+        self.command(self.smshandler.get_mode_cmd()      ) # make sure in PDU mode  
+        self.command(cnmi_command, raise_errors=False)     # enable new message notification
 
     def boot(self, reboot=False):
         """Initializes the modem. Must be called after init and connect,
@@ -372,7 +379,6 @@ class GsmModem(object):
                 # otherwise, allow errors to propagate upwards,
                 # and hope someone is waiting to catch them
                 else: 
-                    print "Aaaarg error";
                     raise(err)
 
         # if the first line of the response echoes the cmd

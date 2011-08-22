@@ -21,7 +21,8 @@ class TestBase(unittest.TestCase):
     rl_args={'read_timeout': mox.IgnoreArg(),
                       'read_term': mox.IgnoreArg()}
     ok = ["","OK"]
-    
+    modemtype = ["","AMCE Modem 4000", "OK"]    
+
     def get_mode(self):
         """
         Subclass overrides this to return 'TEXT' or 'PDU'
@@ -37,13 +38,16 @@ class TestBase(unittest.TestCase):
         self.mockDevice.write("ATE0\r")
         self.mockDevice.read_lines(**self.rl_args).AndReturn(self.ok)
         
+        self.mockDevice.write("AT+CGMM\r")
+        self.mockDevice.read_lines(**self.rl_args).AndReturn(self.modemtype)
+        
         self.mockDevice.write("AT+CMEE=1\r")
         self.mockDevice.read_lines(**self.rl_args).AndReturn(self.ok)
        
-        self.mockDevice.write("AT+WIND=0\r")
-        self.mockDevice.read_lines(**self.rl_args).AndReturn(self.ok)
-        
         self.mockDevice.write("AT+CSMS=1\r")
+        self.mockDevice.read_lines(**self.rl_args).AndReturn(self.ok)
+
+        self.mockDevice.write("AT+WIND=0\r")
         self.mockDevice.read_lines(**self.rl_args).AndReturn(self.ok)
          
         # must see command to set PDU mode
@@ -54,7 +58,7 @@ class TestBase(unittest.TestCase):
         
         self.mockDevice.write("AT+CNMI=2,2,0,0,0\r")
         self.mockDevice.read_lines(**self.rl_args).AndReturn(self.ok)
-        
+
         # verify fetch_stored_messages in boot
         cmgl_str = self.cmgl_map[self.get_mode().lower()]
         self.mockDevice.write("AT+CMGL=%s\r" % cmgl_str)

@@ -141,7 +141,6 @@ class TestModem(unittest.TestCase):
 
         class MockEchoDevice(MockDevice):
             def process(self, cmd):
-                
                 # raise and error for any
                 # cmd other than ECHO OFF
                 if cmd != "ATE0":
@@ -154,6 +153,32 @@ class TestModem(unittest.TestCase):
         gsm = pygsm.GsmModem(device=device)
         self.assertEqual(device.echo, False)
 
+    def testModemSniffing(self):
+        class MockSiemensTC35i(MockDevice):
+            def __init__(self):
+                MockDevice.__init__(self)
+                MockDevice.model = "TC35i"
+                MockDevice.wind_called = False
+                MockDevice.cgmm_called = False
+
+            def at_cgmm(self): 
+                self._output(self.model)
+                self.cgmm_called = True
+                return True
+            
+            def at_wind(self, switch):
+                self.wind_called = True
+                return False
+
+            def at_cnmi(self, settings):
+                self.cnmi_settings = settings
+                return True
+
+        device = MockSiemensTC35i()
+        gsm = pygsm.GsmModem(device=device)
+        self.assertEqual(device.cnmi_settings, "2,2,0,0,1")
+        self.assertEqual(device.cgmm_called, True)
+        self.assertEqual(device.wind_called, False)
 
     def testUsefulErrors(self):
         """Checks that GsmModem attempts to enable useful errors

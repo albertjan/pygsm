@@ -183,11 +183,22 @@ class MockDevice(object):
             # if the value is wrapped in "quotes", remove
             # them. this is sloppy, but we're only mocking
             val = val.strip('"')
-
             # call the method, and insert OK or ERROR into the
             # read buffer depending on the True/False output
             if hasattr(self, method):
                 out = getattr(self, method)(val)
+                return _respond(out)
+
+        #also match the AT+KEYWORD command. A Query to see what modem is connected
+        #needs to return something always.
+        m = re.match(r"^AT\+([A-Z]+)$", cmd)
+        if m is not None:
+            key = m.groups()[0]
+            method = "at_%s" % key.lower()
+            # call the method, and insert OK or ERROR into the
+            # read buffer depending on the True/False output
+            if hasattr(self, method):
+                out = getattr(self, method)()
                 return _respond(out)
 
         # attempt to hand off this
@@ -217,6 +228,10 @@ class MockDevice(object):
         else:
             self.mode = None
             return False
+
+    def at_cgmm(self):
+        self._output("ACME Modem 4000")
+        return True
 
 
     def _output(self, str, delimiters=True):
