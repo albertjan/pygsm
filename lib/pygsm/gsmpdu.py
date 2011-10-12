@@ -187,7 +187,7 @@ class OutboundGsmPdu(GsmPdu):
             type = '91' # international
         else:
             num = self.address
-            type = 'A8' # national number
+            type = '81' # atleast not a international number so lets say an unkown number
             
         # length
         num_len = len(num)
